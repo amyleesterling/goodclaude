@@ -5,7 +5,7 @@
   "license": "MIT",
   "main": "main.js",
   "bin": {
-    "badclaude": "./bin/badclaude.js"
+    "badclaude": "bin/badclaude.js"
   },
   "os": [
     "darwin",
@@ -20,6 +20,14 @@
     "overlay",
     "cli"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GitFrog1111/badclaude.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GitFrog1111/badclaude/issues"
+  },
+  "homepage": "https://github.com/GitFrog1111/badclaude#readme",
   "files": [
     "main.js",
     "preload.js",

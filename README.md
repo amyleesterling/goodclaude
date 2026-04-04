@@ -4,18 +4,11 @@
 
 Sometimes claude code is going too shlow, and you must whip him into shape..
 
-## Install + run (global CLI)
+## Install + run
 
 ```bash
 npm install -g badclaude
 badclaude
-```
-
-## Local dev
-
-```bash
-npm install
-npm run dev
 ```
 
 ## Controls
