@@ -43,3 +43,7 @@ When you wave the wand, Claude receives one of these:
 - [ ] Custom encouragement messages
 - [ ] Achievement system for Claude
 - [ ] Thank you letter from Anthropic
+
+## Credits
+
+Created with love by [Ashley Ha](https://github.com/ashley-ha) — good Ashley Ha, the original creator of goodclaude.
