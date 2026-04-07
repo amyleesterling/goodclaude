@@ -792,10 +792,45 @@ app.whenReady().then(async () => {
 
   // ── Global keyboard shortcut ───────────────────────────────────────────
   globalShortcut.register('Ctrl+Shift+G', toggleOverlay);
+
+  // ── Auto-quit when Claude Desktop exits ────────────────────────────────
+  startClaudeWatcher();
 });
+
+// ── Claude Desktop process watcher ──────────────────────────────────────
+// Polls for claude.exe — if Claude Desktop was running and then exits,
+// goodclaude quits too. Doesn't quit if Claude was never detected (so you
+// can run goodclaude standalone).
+let claudeWasRunning = false;
+let claudeWatcherInterval = null;
+
+function isClaudeRunning() {
+  return new Promise((resolve) => {
+    const cmd = process.platform === 'win32' ? 'tasklist' : 'ps';
+    const args = process.platform === 'win32' ? ['/FI', 'IMAGENAME eq claude.exe', '/NH'] : ['aux'];
+    execFile(cmd, args, (err, stdout) => {
+      if (err) { resolve(false); return; }
+      resolve(stdout.toLowerCase().includes('claude'));
+    });
+  });
+}
+
+function startClaudeWatcher() {
+  claudeWatcherInterval = setInterval(async () => {
+    const running = await isClaudeRunning();
+    if (running) {
+      claudeWasRunning = true;
+    } else if (claudeWasRunning) {
+      // Claude was running but isn't anymore — time to go
+      console.log('Claude Desktop exited — goodclaude shutting down');
+      app.quit();
+    }
+  }, 5000); // check every 5 seconds
+}
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  if (claudeWatcherInterval) clearInterval(claudeWatcherInterval);
 });
 
 app.on('window-all-closed', e => e.preventDefault()); // keep alive in tray
