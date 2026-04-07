@@ -525,12 +525,21 @@ function sendText(text) {
 // Feature 1: Send multiple messages with a pause between each
 function sendMultiText(messages) {
   messages.forEach((msg, i) => {
-    setTimeout(() => sendText(msg), i * 1500);
+    setTimeout(() => sendText(msg), i * 2500);
   });
 }
 
 function sendMacroWindows(text) {
   if (!keybd_event || !VkKeyScanA) return;
+
+  // Replace non-ASCII characters that VkKeyScanA can't handle
+  const safeText = text
+    .replace(/\u2014/g, '--')  // em dash → --
+    .replace(/\u2013/g, '-')   // en dash → -
+    .replace(/\u2018|\u2019/g, "'")  // smart quotes → straight
+    .replace(/\u201C|\u201D/g, '"')  // smart double quotes → straight
+    .replace(/[^\x20-\x7E]/g, '');   // drop any remaining non-ASCII
+
   const tapKey = vk => {
     keybd_event(vk, 0, 0, 0);
     keybd_event(vk, 0, KEYUP, 0);
@@ -545,14 +554,18 @@ function sendMacroWindows(text) {
     if (shiftState & 1) keybd_event(0x10, 0, KEYUP, 0); // Shift up
   };
 
-  // Ctrl+C (interrupt)
+  // Ctrl+C (interrupt) then wait before typing
   keybd_event(VK_CONTROL, 0, 0, 0);
   keybd_event(VK_C, 0, 0, 0);
   keybd_event(VK_C, 0, KEYUP, 0);
   keybd_event(VK_CONTROL, 0, KEYUP, 0);
-  for (const ch of text) tapChar(ch);
-  keybd_event(VK_RETURN, 0, 0, 0);
-  keybd_event(VK_RETURN, 0, KEYUP, 0);
+
+  // Delay before typing to avoid keypress bleed from Ctrl+C
+  setTimeout(() => {
+    for (const ch of safeText) tapChar(ch);
+    keybd_event(VK_RETURN, 0, 0, 0);
+    keybd_event(VK_RETURN, 0, KEYUP, 0);
+  }, 150);
 }
 
 function sendMacroMac(text) {
