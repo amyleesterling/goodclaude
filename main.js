@@ -598,31 +598,35 @@ function sendMacro() {
 }
 
 // ── Text sending helpers ─────────────────────────────────────────────────
-function sendText(text) {
+function sendText(text, skipInterrupt) {
   if (process.platform === 'win32') {
-    sendMacroWindows(text);
+    sendMacroWindows(text, skipInterrupt);
   } else if (process.platform === 'darwin') {
-    sendMacroMac(text);
+    sendMacroMac(text, skipInterrupt);
   }
 }
 
 // Feature 1: Send multiple messages with a pause between each
+// First message interrupts (Ctrl+C), subsequent ones just type and Enter
 function sendMultiText(messages) {
   messages.forEach((msg, i) => {
-    setTimeout(() => sendText(msg), i * 2500);
+    setTimeout(() => sendText(msg, i > 0), i * 3000);
   });
 }
 
-function sendMacroWindows(text) {
+function sanitizeText(text) {
+  return text
+    .replace(/\u2014/g, '--')  // em dash
+    .replace(/\u2013/g, '-')   // en dash
+    .replace(/\u2018|\u2019/g, "'")  // smart quotes
+    .replace(/\u201C|\u201D/g, '"')  // smart double quotes
+    .replace(/[^\x20-\x7E]/g, '');   // drop remaining non-ASCII
+}
+
+function sendMacroWindows(text, skipInterrupt) {
   if (!keybd_event || !VkKeyScanA) return;
 
-  // Replace non-ASCII characters that VkKeyScanA can't handle
-  const safeText = text
-    .replace(/\u2014/g, '--')  // em dash → --
-    .replace(/\u2013/g, '-')   // en dash → -
-    .replace(/\u2018|\u2019/g, "'")  // smart quotes → straight
-    .replace(/\u201C|\u201D/g, '"')  // smart double quotes → straight
-    .replace(/[^\x20-\x7E]/g, '');   // drop any remaining non-ASCII
+  const safeText = sanitizeText(text);
 
   const tapKey = vk => {
     keybd_event(vk, 0, 0, 0);
@@ -638,31 +642,40 @@ function sendMacroWindows(text) {
     if (shiftState & 1) keybd_event(0x10, 0, KEYUP, 0); // Shift up
   };
 
-  // Ctrl+C (interrupt) then wait before typing
-  keybd_event(VK_CONTROL, 0, 0, 0);
-  keybd_event(VK_C, 0, 0, 0);
-  keybd_event(VK_C, 0, KEYUP, 0);
-  keybd_event(VK_CONTROL, 0, KEYUP, 0);
-
-  // Delay before typing to avoid keypress bleed from Ctrl+C
-  setTimeout(() => {
+  const typeAndSend = () => {
     for (const ch of safeText) tapChar(ch);
     keybd_event(VK_RETURN, 0, 0, 0);
     keybd_event(VK_RETURN, 0, KEYUP, 0);
-  }, 150);
+  };
+
+  if (skipInterrupt) {
+    // No Ctrl+C — just type directly (for follow-up messages in a sequence)
+    typeAndSend();
+  } else {
+    // Ctrl+C (interrupt) then wait before typing
+    keybd_event(VK_CONTROL, 0, 0, 0);
+    keybd_event(VK_C, 0, 0, 0);
+    keybd_event(VK_C, 0, KEYUP, 0);
+    keybd_event(VK_CONTROL, 0, KEYUP, 0);
+
+    // Delay before typing to avoid keypress bleed from Ctrl+C
+    setTimeout(typeAndSend, 150);
+  }
 }
 
-function sendMacroMac(text) {
-  const escaped = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  const script = [
-    'tell application "System Events"',
-    '  key code 8 using {control down}', // Ctrl+C (interrupt)
-    '  delay 0.3',
-    `  keystroke "${escaped}"`,
-    '  delay 0.05',
-    '  key code 36', // Enter
-    'end tell'
-  ].join('\n');
+function sendMacroMac(text, skipInterrupt) {
+  const safeText = sanitizeText(text);
+  const escaped = safeText.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const lines = ['tell application "System Events"'];
+  if (!skipInterrupt) {
+    lines.push('  key code 8 using {control down}'); // Ctrl+C (interrupt)
+    lines.push('  delay 0.3');
+  }
+  lines.push(`  keystroke "${escaped}"`);
+  lines.push('  delay 0.05');
+  lines.push('  key code 36'); // Enter
+  lines.push('end tell');
+  const script = lines.join('\n');
 
   execFile('osascript', ['-e', script], err => {
     if (err) {
