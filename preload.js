@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld('bridge', {
   onSpawnWand: (fn) => ipcRenderer.on('spawn-wand', () => fn()),
   onDropWand: (fn) => ipcRenderer.on('drop-wand', () => fn()),
   onBlessingSent: (fn) => ipcRenderer.on('blessing-sent', (_event, data) => fn(data)),
+  onJournalData: (fn) => ipcRenderer.on('journal-data', (_event, data) => fn(data)),
 });
