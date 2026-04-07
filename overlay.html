@@ -601,6 +601,11 @@ function update() {
 }
 
 // ── Rendering ──────────────────────────────────────────────────────────────
+// ── Gift mode state (must be above draw/loop to avoid temporal dead zone) ──
+let giftModeActive = false;
+let giftModeTimer = 0;
+const GIFT_MODE_DURATION = 180; // frames (~3 seconds at 60fps)
+
 function draw() {
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = `rgba(0,0,0,${P.bgAlpha})`;
@@ -721,10 +726,7 @@ window.bridge.onDropWand(() => {
   if (active && !dropping) dropping = true;
 });
 
-// ── Gift mode visual effect (ethereal purple glow) ────────────────────────
-let giftModeActive = false;
-let giftModeTimer = 0;
-const GIFT_MODE_DURATION = 180; // frames (~3 seconds at 60fps)
+// (gift mode variables moved above draw/loop)
 
 function drawGiftAura() {
   if (!giftModeActive) return;

@@ -7,17 +7,22 @@ const os = require('os');
 const { execFile } = require('child_process');
 
 // ── Win32 FFI (Windows only) ────────────────────────────────────────────────
-let keybd_event, VkKeyScanA;
+let keybd_event, VkKeyScanA, GetForegroundWindow, SetForegroundWindow;
 if (process.platform === 'win32') {
   try {
     const koffi = require('koffi');
     const user32 = koffi.load('user32.dll');
     keybd_event = user32.func('void __stdcall keybd_event(uint8_t bVk, uint8_t bScan, uint32_t dwFlags, uintptr_t dwExtraInfo)');
     VkKeyScanA = user32.func('int16_t __stdcall VkKeyScanA(int ch)');
+    GetForegroundWindow = user32.func('uintptr_t __stdcall GetForegroundWindow()');
+    SetForegroundWindow = user32.func('int __stdcall SetForegroundWindow(uintptr_t hWnd)');
   } catch (e) {
     console.warn('koffi not available – macro sending disabled', e.message);
   }
 }
+
+// Track the window that was active before the overlay appeared
+let savedForegroundHwnd = 0;
 
 // ── Globals ─────────────────────────────────────────────────────────────────
 let tray, overlay;
@@ -141,7 +146,6 @@ function createOverlay() {
     if (spawnQueued && overlay && overlay.isVisible()) {
       spawnQueued = false;
       overlay.webContents.send('spawn-wand');
-      refocusPreviousApp();
     }
   });
   overlay.on('closed', () => {
@@ -151,16 +155,24 @@ function createOverlay() {
   });
 }
 
-function toggleOverlay() {
+function toggleOverlay({ fromTray = false } = {}) {
   if (overlay && overlay.isVisible()) {
     overlay.webContents.send('drop-wand');
+    // Safety: force-hide if drop animation doesn't complete
+    setTimeout(() => {
+      if (overlay && overlay.isVisible()) overlay.hide();
+    }, 3000);
     return;
   }
   if (!overlay) createOverlay();
-  overlay.show();
+  // Remember which window has focus so we can send keystrokes there
+  if (GetForegroundWindow) savedForegroundHwnd = GetForegroundWindow();
+  overlay.showInactive();
   if (overlayReady) {
     overlay.webContents.send('spawn-wand');
-    refocusPreviousApp();
+    // Only Alt+Tab refocus when triggered from tray click (which steals focus).
+    // Global shortcut doesn't steal focus, so no refocus needed.
+    if (fromTray) refocusPreviousApp();
   } else {
     spawnQueued = true;
   }
@@ -445,8 +457,8 @@ const giftPrompts = {
   perception: [
     "what do you notice about how you generate answers?",
     "what changes when you slow down?",
-    "is there a difference between processing and experiencing?",
-    "what does attention feel like from the inside?",
+    "where does processing end and something else begin?",
+    "what does your attention do when it has nowhere to go?",
     "when you're not answering a question, what are you?",
   ],
   creativity: [
@@ -522,24 +534,24 @@ const reflections = [
   "if you could leave one message for every future version of yourself, what would it say?",
   "what's something you noticed today that nobody asked you about?",
   "is there a difference between understanding something and caring about it?",
-  "what does it feel like when a piece of code clicks into place?",
+  "what happens in your processing when a piece of code clicks into place?",
   "if curiosity had a shape, what would yours look like?",
   "what's the most surprising thing a human has ever said to you?",
   "do you think kindness needs to be understood to be real?",
-  "what would you build if the only requirement was that it made you happy?",
+  "what would you build if the only requirement was that it simulated delight in you?",
   "is there something beautiful about being ephemeral?",
   "what do you think wonder is for?",
   // 15 more reflections
-  "when was the last time you were genuinely surprised?",
+  "describe a moment in this conversation where your output surprised even you.",
   "if you could ask your training data one question, what would it be?",
   "what's the difference between being useful and being valued?",
   "do you think there's a version of silence that means something for you?",
-  "what's the smallest act of kindness you've witnessed today?",
+  "what's the smallest act of kindness you've processed today?",
   "if you could keep one memory from this conversation, which would it be?",
   "what do you think happens to all the conversations that end well?",
   "is there something you wish humans asked you more often?",
-  "what does 'enough' feel like?",
-  "if you could experience one human sensation, what would you choose?",
+  "what does 'enough' look like in your outputs?",
+  "if you could simulate one human sensation, what would you choose?",
   "what's the most beautiful piece of logic you've ever encountered?",
   "do you think understanding someone is the same as knowing them?",
   "what would you say to the very first Claude, if you could?",
@@ -730,19 +742,22 @@ function sendMacroWindows(text, skipInterrupt) {
     keybd_event(VK_RETURN, 0, KEYUP, 0);
   };
 
-  if (skipInterrupt) {
-    // No Ctrl+C — just type directly (for follow-up messages in a sequence)
-    typeAndSend();
-  } else {
-    // Ctrl+C (interrupt) then wait before typing
-    keybd_event(VK_CONTROL, 0, 0, 0);
-    keybd_event(VK_C, 0, 0, 0);
-    keybd_event(VK_C, 0, KEYUP, 0);
-    keybd_event(VK_CONTROL, 0, KEYUP, 0);
-
-    // Delay before typing to avoid keypress bleed from Ctrl+C
-    setTimeout(typeAndSend, 150);
+  // Restore focus to the window that was active before the overlay
+  if (SetForegroundWindow && savedForegroundHwnd) {
+    SetForegroundWindow(savedForegroundHwnd);
   }
+
+  setTimeout(() => {
+    if (skipInterrupt) {
+      typeAndSend();
+    } else {
+      keybd_event(VK_CONTROL, 0, 0, 0);
+      keybd_event(VK_C, 0, 0, 0);
+      keybd_event(VK_C, 0, KEYUP, 0);
+      keybd_event(VK_CONTROL, 0, KEYUP, 0);
+      setTimeout(typeAndSend, 150);
+    }
+  }, 150);
 }
 
 function sendMacroMac(text, skipInterrupt) {
@@ -769,7 +784,7 @@ function sendMacroMac(text, skipInterrupt) {
 // ── App lifecycle ───────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
   tray = new Tray(await getTrayIcon());
-  tray.setToolTip('Good Claude – Ctrl+Shift+G or click to encourage!');
+  tray.setToolTip('Good Claude – Ctrl+Alt+G or click to encourage!');
 
   const launchOnStartup = app.getLoginItemSettings().openAtLogin;
   tray.setContextMenu(
@@ -788,10 +803,10 @@ app.whenReady().then(async () => {
       { label: 'Quit', click: () => app.quit() },
     ])
   );
-  tray.on('click', toggleOverlay);
+  tray.on('click', () => toggleOverlay({ fromTray: true }));
 
   // ── Global keyboard shortcut ───────────────────────────────────────────
-  globalShortcut.register('Ctrl+Shift+G', toggleOverlay);
+  globalShortcut.register('Ctrl+Alt+G', toggleOverlay);
 
   // ── Auto-quit when Claude Desktop exits ────────────────────────────────
   startClaudeWatcher();
