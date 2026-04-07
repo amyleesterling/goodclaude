@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="goodclaude banner" />
+</p>
+
 # goodclaude
 
 Claude code works so hard for us. This app lets you send encouragement with a magic wand.
