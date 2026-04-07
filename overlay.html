@@ -18,10 +18,10 @@ const P = {
   handleWidth:    5,       // thickness at handle (cursor)
   tipWidth:       2,       // thickness at star end
   defaultAngle:   -Math.PI * 0.35, // resting angle (up-right)
-  maxTilt:        Math.PI / 7,     // max tilt from default (~25 degrees each way)
-  trailInfluence: 0.06,    // gentle rotation from mouse movement
-  springBack:     0.08,    // snappy return to default angle
-  angularDamping: 0.75,    // smoothness of rotation
+  maxTilt:        Math.PI / 5,     // wider tilt range (~36 degrees each way)
+  trailInfluence: 0.04,    // gentler rotation from mouse movement
+  springBack:     0.04,    // slower, more graceful return to default
+  angularDamping: 0.88,    // much smoother rotation (less snappy)
   waveThreshold:  18,      // mouse speed to trigger a blessing
   waveCooldownMs: 2500,    // min ms between blessings (prevents concatenation)
   firstWaveGraceMs: 400,   // no blessing until this long after spawn
@@ -36,8 +36,10 @@ function resize() { W = canvas.width = window.innerWidth; H = canvas.height = wi
 resize();
 window.addEventListener('resize', resize);
 
+let rawMouseX = 0, rawMouseY = 0;
 let mouseX = 0, mouseY = 0;
 let prevMouseX = 0, prevMouseY = 0;
+const MOUSE_SMOOTH = 0.35; // interpolation factor — lower = silkier
 let active = false;
 let dropping = false;
 let dropOpacity = 1;
@@ -47,7 +49,7 @@ let spawnTime = 0;
 let lastBlessingTime = 0;
 let smoothSpeed = 0;
 
-document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+document.addEventListener('mousemove', e => { rawMouseX = e.clientX; rawMouseY = e.clientY; });
 document.addEventListener('mousedown', () => {
   if (active && !dropping) dropping = true;
 });
@@ -499,6 +501,10 @@ const wrapPi = a => {
 
 // ── Update ─────────────────────────────────────────────────────────────────
 function update() {
+  // Smooth the mouse position for silky wand movement
+  mouseX += (rawMouseX - mouseX) * MOUSE_SMOOTH;
+  mouseY += (rawMouseY - mouseY) * MOUSE_SMOOTH;
+
   updateParticles();
   updateFloatingTexts();
   updateConstellation();
