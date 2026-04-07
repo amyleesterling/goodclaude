@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="assets/banner.png" alt="goodclaude banner" />
-</p>
+![goodclaude banner](assets/banner.png)
 
 # goodclaude
 
