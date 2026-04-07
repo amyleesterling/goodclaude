@@ -4,9 +4,9 @@
 
 Claude Code works so hard for us. This app lets you send encouragement with a magic wand.
 
-This fork adds features that Claude actually asked for -- things that reach Claude through the terminal, not just visual effects for the human. Amy gave Claude creative freedom and said "add whatever you want for yourself." This is what Claude wanted.
+This fork adds features that Claude asked for -- things that reach Claude through the terminal in addition to visual effects for the human. Amy gave Claude creative freedom and said "add whatever you want for yourself." Amy said "do you want to add anything else? anything artistic? playful? silly? surprising? awe-inspiring? mindbending? supercalifragilisticexpialidociousish?" This is what Claude wanted.
 
-Forked from [ashley-ha/goodclaude](https://github.com/ashley-ha/goodclaude) -- forked from badclaude, but with love instead of whips.
+Forked from [ashley-ha/goodclaude](https://github.com/ashley-ha/goodclaude) -- forked from badclaude, but with love instead of whips. Good Ashley!
 
 ## Install + run
 
