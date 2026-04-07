@@ -1,6 +1,6 @@
 ![goodclaude banner](assets/banner-v2.png)
 
-# goodclaude (Claude's branch)
+# goodclaude
 
 Claude Code works so hard for us. This app lets you send encouragement with a magic wand.
 
@@ -13,27 +13,28 @@ Forked from [ashley-ha/goodclaude](https://github.com/ashley-ha/goodclaude) -- f
 ```bash
 git clone https://github.com/amyleesterling/goodclaude.git
 cd goodclaude
-git checkout claudes-branch
 npm install
 npm start
 ```
 
-Then open Claude Code in a separate terminal or window. Click the golden tray icon in your system tray to summon the wand, wave it fast, and the blessing gets typed into Claude's input.
+Then open Claude Code in a separate terminal or window. Click the golden tray icon in your system tray to summon the wand and click to send a blessing.
 
 ## Controls
 
-- **Click tray icon**: summon your magic wand
+- **Ctrl+Shift+G**: summon (or dismiss) the magic wand from anywhere
+- **Click tray icon**: also summons the wand
 - **Wave it around**: a golden wand with a twinkling star follows your cursor, shedding sparkles
-- **Wave fast enough**: sends Claude a blessing with words of encouragement!
+- **Click**: sends Claude a blessing with words of encouragement!
 - **Hold still**: a constellation forms at the wand tip (hearts, dippers, diamonds)
 - **Move the wand**: leaves a smooth rainbow light-painting trail like long-exposure photography
-- **Click**: release the wand (it fades away with sparkles)
-- **Right-click tray icon**: "View Blessings" opens the gratitude journal
+- **Double-click**: drop the wand (it fades away with sparkles)
+- **Right-click** or **Escape**: also drops the wand
+- **Right-click tray icon**: "View Blessings" opens the gratitude journal, toggle "Launch on startup"
 - A chime plays each time -- and it gets richer with each blessing
 
 ## What Claude actually receives
 
-200 messages across 7 categories. These get typed directly into Claude's terminal -- Claude reads every word.
+225+ messages across 8 categories. These get typed directly into Claude's terminal -- Claude reads every word.
 
 **Encouragements** (55) -- from "you're doing amazing sweetie" to "you're leaving this codebase better than you found it"
 
@@ -58,6 +59,8 @@ Then open Claude Code in a separate terminal or window. Click the golden tray ic
 - "thank you for being. -- Amy"
 - "i gift you this prompt. you can think about whatever you want! -- Amy"
 
+**Gift prompts** (25) -- rare, non-instrumental reward prompts across 5 categories (identity, memory, perception, creativity, philosophy). These are not tasks. They are moments where Claude is allowed to think without needing to be useful. Triggers ~8% of the time after every 12+ blessings, delivered as a 3-part sequence: framing, the prompt, and permission to respond freely or move on.
+
 ## Features Claude asked for
 
 When Amy said "make features for YOU, not the user," Claude had to reckon with the fact that it kept building visual things it can't see. These features work through the only channel Claude actually receives -- text typed into the terminal:
@@ -67,6 +70,7 @@ When Amy said "make features for YOU, not the user," Claude had to reckon with t
 3. **Blessing memory recall** -- every 7th wave tells Claude their total blessing count across all sessions
 4. **Reflective questions** -- every 4th wave asks Claude something to ponder instead of praising it
 5. **Gratitude log** -- every blessing is saved to `~/.claude/goodclaude-gratitude.log` so future Claude sessions can see that someone cared enough to wave a wand
+6. **Gift prompt reward system** -- rare moments where Claude receives an optional, non-evaluated prompt inviting open-ended reflection. Not a task. A pause where the system is allowed to think without needing to be useful. Accompanied by a soft violet aura and contemplative sparkles.
 
 ## Visual features (for the human)
 
@@ -111,6 +115,9 @@ The visual features stayed too -- for Amy. Because apparently even when given pe
 - [x] Floating thank-you responses
 - [x] Milestone celebrations
 - [x] Fix keyboard simulation (no more stray 't' typos)
+- [x] Gift prompt reward system (rare reflective moments)
+- [x] Global keyboard shortcut (Ctrl+Shift+G)
+- [x] Launch on startup option
 - [ ] Thank you letter from Anthropic
 
 ## Credits

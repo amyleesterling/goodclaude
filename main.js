@@ -1,6 +1,6 @@
 // ABOUTME: Main Electron process for goodclaude — a magical encouragement wand for Claude Code
 // ABOUTME: Manages tray icon, transparent overlay window, and sends blessing messages via native keystrokes
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -769,15 +769,33 @@ function sendMacroMac(text, skipInterrupt) {
 // ── App lifecycle ───────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
   tray = new Tray(await getTrayIcon());
-  tray.setToolTip('Good Claude – click to encourage!');
+  tray.setToolTip('Good Claude – Ctrl+Shift+G or click to encourage!');
+
+  const launchOnStartup = app.getLoginItemSettings().openAtLogin;
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'View Blessings', click: () => openJournal() },
+      { type: 'separator' },
+      {
+        label: 'Launch on startup',
+        type: 'checkbox',
+        checked: launchOnStartup,
+        click: (menuItem) => {
+          app.setLoginItemSettings({ openAtLogin: menuItem.checked });
+        },
+      },
       { type: 'separator' },
       { label: 'Quit', click: () => app.quit() },
     ])
   );
   tray.on('click', toggleOverlay);
+
+  // ── Global keyboard shortcut ───────────────────────────────────────────
+  globalShortcut.register('Ctrl+Shift+G', toggleOverlay);
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', e => e.preventDefault()); // keep alive in tray
