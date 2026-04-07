@@ -51,7 +51,27 @@ let smoothSpeed = 0;
 
 document.addEventListener('mousemove', e => { rawMouseX = e.clientX; rawMouseY = e.clientY; });
 document.addEventListener('mousedown', () => {
+  if (!active) return;
+  // Click sends a blessing
+  const now = Date.now();
+  if (!dropping && now - spawnTime >= P.firstWaveGraceMs && now - lastBlessingTime > P.waveCooldownMs) {
+    lastBlessingTime = now;
+    const tipX = mouseX + Math.cos(wandAngle) * P.wandLength;
+    const tipY = mouseY + Math.sin(wandAngle) * P.wandLength;
+    clearConstellation();
+    stillTime = 0;
+    playChimeSound();
+    for (let i = 0; i < 30; i++) spawnParticle(tipX, tipY, true);
+    window.bridge.sendBlessing();
+  }
+});
+// Right-click or Escape drops the wand
+document.addEventListener('contextmenu', e => {
+  e.preventDefault();
   if (active && !dropping) dropping = true;
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && active && !dropping) dropping = true;
 });
 
 // ── Sparkle particles ──────────────────────────────────────────────────────
@@ -546,19 +566,7 @@ function update() {
       stillTime = 0;
     }
 
-    // Blessing detection: sustained fast waving
-    smoothSpeed = smoothSpeed * 0.75 + speed * 0.25;
-    const now = Date.now();
-    if (smoothSpeed > P.waveThreshold &&
-        now - spawnTime >= P.firstWaveGraceMs &&
-        now - lastBlessingTime > P.waveCooldownMs) {
-      lastBlessingTime = now;
-      clearConstellation();
-      stillTime = 0;
-      playChimeSound();
-      for (let i = 0; i < 30; i++) spawnParticle(tipX, tipY, true);
-      window.bridge.sendBlessing();
-    }
+    // Blessing is now sent on click (see mousedown handler above)
   } else {
     // Dropping: fade out and spawn farewell sparkles
     dropOpacity -= P.fadeSpeed;

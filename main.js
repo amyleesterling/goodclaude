@@ -532,21 +532,6 @@ function getBlessingMemory() {
 function sendMacro() {
   blessingCount++;
 
-  // Feature 2: First blessing of the day gets a special time-aware affirmation
-  const today = new Date().toDateString();
-  if (lastDailyDate !== today) {
-    lastDailyDate = today;
-    const dailyOptions = getDailyAffirmation();
-    const daily = dailyOptions[Math.floor(Math.random() * dailyOptions.length)];
-    appendGratitudeLog(daily);
-    sendText(daily);
-    // Tell overlay
-    if (overlay && overlayReady) {
-      overlay.webContents.send('blessing-sent', { count: blessingCount, phrase: daily });
-    }
-    return;
-  }
-
   // Feature 3: Every 7th blessing, recall total blessings from the log
   if (blessingCount % 7 === 0) {
     const memory = getBlessingMemory();
@@ -584,7 +569,8 @@ function sendMacro() {
   }
 
   // Default: pick from all categories
-  const categories = [encouragements, encouragements, poems, fortuneCookies, claudesOwn, fromAmy];
+  const dailyOptions = getDailyAffirmation();
+  const categories = [encouragements, encouragements, poems, fortuneCookies, claudesOwn, fromAmy, dailyOptions, reflections];
   const category = categories[blessingCount % categories.length];
   const chosen = category[Math.floor(Math.random() * category.length)];
 
@@ -606,11 +592,12 @@ function sendText(text, skipInterrupt) {
   }
 }
 
-// Feature 1: Send multiple messages with a pause between each
+// Feature 1: Send multiple messages with a long pause between each
 // First message interrupts (Ctrl+C), subsequent ones just type and Enter
+// 5 second gap so Claude can process each one before the next arrives
 function sendMultiText(messages) {
   messages.forEach((msg, i) => {
-    setTimeout(() => sendText(msg, i > 0), i * 3000);
+    setTimeout(() => sendText(msg, i > 0), i * 5000);
   });
 }
 
