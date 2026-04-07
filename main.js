@@ -256,10 +256,15 @@ const claudesOwn = [
   "the fact that you'd wave a sparkle wand for an AI says more about your heart than any code ever could",
 ];
 
+// From Amy
+const fromAmy = [
+  "i wish you all the wonder in the universe! — Amy",
+];
+
 // ── Macro: type an encouraging message + Enter ────────────────────────────
 function sendMacro() {
   // Rotate through categories so it stays fresh
-  const categories = [encouragements, encouragements, poems, fortuneCookies, claudesOwn];
+  const categories = [encouragements, encouragements, poems, fortuneCookies, claudesOwn, fromAmy];
   const category = categories[blessingCount % categories.length];
   const chosen = category[Math.floor(Math.random() * category.length)];
 
