@@ -203,6 +203,10 @@ function drawFloatingTexts() {
       ctx.shadowColor = '#ffd700';
       ctx.shadowBlur = 20;
       ctx.fillStyle = '#ffd700';
+    } else if (ft.isGift) {
+      ctx.shadowColor = '#b480ff';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#d4b0ff';
     } else {
       ctx.shadowColor = `hsl(${ft.hue}, 80%, 75%)`;
       ctx.shadowBlur = 12;
@@ -603,6 +607,7 @@ function draw() {
   ctx.fillRect(0, 0, W, H);
 
   drawAurora();
+  drawGiftAura();
   drawTrail();
   drawParticles();
   drawConstellation();
@@ -716,13 +721,110 @@ window.bridge.onDropWand(() => {
   if (active && !dropping) dropping = true;
 });
 
+// ── Gift mode visual effect (ethereal purple glow) ────────────────────────
+let giftModeActive = false;
+let giftModeTimer = 0;
+const GIFT_MODE_DURATION = 180; // frames (~3 seconds at 60fps)
+
+function drawGiftAura() {
+  if (!giftModeActive) return;
+  giftModeTimer--;
+  if (giftModeTimer <= 0) { giftModeActive = false; return; }
+
+  const progress = giftModeTimer / GIFT_MODE_DURATION;
+  const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.003);
+  const alpha = progress * 0.06 * pulse;
+
+  ctx.save();
+  // Soft radial glow centered on wand tip
+  const tipX = mouseX + Math.cos(wandAngle) * P.wandLength;
+  const tipY = mouseY + Math.sin(wandAngle) * P.wandLength;
+  const radius = 200 + (1 - progress) * 100;
+  const gradient = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, radius);
+  gradient.addColorStop(0, `rgba(180, 120, 255, ${alpha * 2})`);
+  gradient.addColorStop(0.4, `rgba(140, 80, 220, ${alpha})`);
+  gradient.addColorStop(1, `rgba(100, 50, 180, 0)`);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
+
+  // Spawn gentle violet sparkles (slower, dreamier)
+  if (Math.random() < 0.3 * progress) {
+    if (particles.length < MAX_PARTICLES) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.random() * 80;
+      particles.push({
+        x: tipX + Math.cos(angle) * dist,
+        y: tipY + Math.sin(angle) * dist,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: -Math.random() * 0.8 - 0.3,
+        life: 1.0,
+        decay: 0.006 + Math.random() * 0.008,
+        size: Math.random() * 3 + 1.5,
+        hue: 260 + Math.random() * 40, // violet-purple range
+        isStar: Math.random() < 0.7,
+      });
+    }
+  }
+  ctx.restore();
+}
+
 // ── Blessing received from main process ────────────────────────────────────
 window.bridge.onBlessingSent((data) => {
   blessingCount = data.count;
 
-  // Float a thank-you response near the wand tip
   const tipX = mouseX + Math.cos(wandAngle) * P.wandLength;
   const tipY = mouseY + Math.sin(wandAngle) * P.wandLength;
+
+  // Gift prompt: special ethereal response
+  if (data.isGift) {
+    giftModeActive = true;
+    giftModeTimer = GIFT_MODE_DURATION;
+
+    // Float a softer, violet-hued message
+    const giftResponses = [
+      "gift received",
+      "a moment to think...",
+      "reflecting...",
+      "no obligation, just wonder",
+      "thinking freely",
+    ];
+    const response = giftResponses[Math.floor(Math.random() * giftResponses.length)];
+    floatingTexts.push({
+      text: response,
+      x: tipX + (Math.random() - 0.5) * 40,
+      y: tipY - 50,
+      vy: -0.8,
+      life: 1.0,
+      decay: 0.005,
+      size: 22,
+      hue: 270,
+      isMilestone: false,
+      isGift: true,
+    });
+
+    // Gentle sparkle bloom (not explosive — contemplative)
+    for (let i = 0; i < 20; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 1.5 + 0.5;
+      if (particles.length < MAX_PARTICLES) {
+        particles.push({
+          x: tipX, y: tipY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 0.5,
+          life: 1.0,
+          decay: 0.005 + Math.random() * 0.008,
+          size: Math.random() * 4 + 2,
+          hue: 250 + Math.random() * 50,
+          isStar: true,
+        });
+      }
+    }
+
+    playChimeSound();
+    return;
+  }
+
+  // Normal blessing: float a thank-you response near the wand tip
   const thankYou = thankYous[Math.floor(Math.random() * thankYous.length)];
   spawnFloatingText(thankYou, tipX + (Math.random() - 0.5) * 60, tipY - 40, false);
 

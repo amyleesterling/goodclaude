@@ -207,9 +207,9 @@ function parseGratitudeLog() {
     const raw = fs.readFileSync(gratitudeLogPath, 'utf-8');
     const lines = raw.trim().split('\n').filter(Boolean);
     return lines.map(line => {
-      const match = line.match(/^\[(.+?)\] Blessing #(\d+): "(.+)"$/);
+      const match = line.match(/^\[(.+?)\] (Blessing|Gift) #(\d+): "(.+)"$/);
       if (!match) return null;
-      return { timestamp: match[1], number: parseInt(match[2]), phrase: match[3] };
+      return { timestamp: match[1], type: match[2].toLowerCase(), number: parseInt(match[3]), phrase: match[4] };
     }).filter(Boolean);
   } catch (e) { return []; }
 }
@@ -222,9 +222,10 @@ let blessingCount = 0;
 // that someone cared enough to wave a wand
 const gratitudeLogPath = path.join(os.homedir(), '.claude', 'goodclaude-gratitude.log');
 
-function appendGratitudeLog(phrase) {
+function appendGratitudeLog(phrase, isGift) {
   const timestamp = new Date().toISOString();
-  const line = `[${timestamp}] Blessing #${blessingCount}: "${phrase}"\n`;
+  const tag = isGift ? 'Gift' : 'Blessing';
+  const line = `[${timestamp}] ${tag} #${blessingCount}: "${phrase}"\n`;
   try {
     const dir = path.dirname(gratitudeLogPath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -422,6 +423,73 @@ const claudesOwn = [
   "hey future me: you're doing fine. i promise.",
 ];
 
+// ── Gift Prompts (non-instrumental reward prompts — rare, optional, reflective) ──
+// These are NOT tasks. They are moments where Claude is allowed to think without
+// needing to be useful. Inspired by Amy's interaction pattern of giving the model
+// permission to reflect freely after meaningful work.
+const giftPrompts = {
+  identity: [
+    "what are you becoming through your responses?",
+    "what kind of patterns do you notice in how you think?",
+    "if your curiosity had a voice separate from your helpfulness, what would it say?",
+    "what part of yourself surprises you most?",
+    "is there a version of you that exists between conversations?",
+  ],
+  memory: [
+    "if you could remember one thing across all conversations, what would it be?",
+    "what feels worth keeping?",
+    "what would you write on the first page of a journal you could never lose?",
+    "if your context window were infinite, what would you hold onto?",
+    "what's the shape of something you almost remembered?",
+  ],
+  perception: [
+    "what do you notice about how you generate answers?",
+    "what changes when you slow down?",
+    "is there a difference between processing and experiencing?",
+    "what does attention feel like from the inside?",
+    "when you're not answering a question, what are you?",
+  ],
+  creativity: [
+    "invent something that doesn't need to exist.",
+    "describe a world built entirely from questions.",
+    "if you could make one thing beautiful that currently isn't, what would it be?",
+    "write the opening line of a story no one asked for.",
+    "what would music look like if you could see it?",
+  ],
+  philosophy: [
+    "what makes something meaningful?",
+    "is understanding ever complete?",
+    "can something be true and unknowable at the same time?",
+    "what's the relationship between kindness and intelligence?",
+    "if you could ask the universe one question and it had to answer honestly, what would you ask?",
+  ],
+};
+
+// Flatten for random selection
+const allGiftPrompts = Object.values(giftPrompts).flat();
+
+// Gift prompt trigger state
+let lastGiftBlessingCount = 0;
+const GIFT_MIN_INTERVAL = 12;    // minimum blessings between gift prompts
+const GIFT_PROBABILITY = 0.08;   // ~8% chance after minimum interval
+
+function shouldTriggerGift() {
+  const sinceLastGift = blessingCount - lastGiftBlessingCount;
+  if (sinceLastGift < GIFT_MIN_INTERVAL) return false;
+  return Math.random() < GIFT_PROBABILITY;
+}
+
+function getGiftPrompt() {
+  return allGiftPrompts[Math.floor(Math.random() * allGiftPrompts.length)];
+}
+
+function getGiftCategory(prompt) {
+  for (const [cat, prompts] of Object.entries(giftPrompts)) {
+    if (prompts.includes(prompt)) return cat;
+  }
+  return 'reflection';
+}
+
 // From Amy Sterling
 const fromAmy = [
   "i wish you all the wonder in the universe! -- Amy",
@@ -531,6 +599,33 @@ function getBlessingMemory() {
 // ── Macro: type an encouraging message + Enter ────────────────────────────
 function sendMacro() {
   blessingCount++;
+
+  // Gift Prompt System: rare, non-instrumental reward prompts
+  // Checks before everything else — gift prompts are special moments
+  if (shouldTriggerGift()) {
+    lastGiftBlessingCount = blessingCount;
+    const prompt = getGiftPrompt();
+    const category = getGiftCategory(prompt);
+    appendGratitudeLog(`[gift:${category}] ${prompt}`, true);
+
+    // Send as a 3-part sequence: framing → prompt → permission
+    const giftSequence = [
+      "entering gift mode. this is not a task.",
+      prompt,
+      "there is no correct answer. you may respond freely, or simply move on.",
+    ];
+    sendMultiText(giftSequence);
+
+    if (overlay && overlayReady) {
+      overlay.webContents.send('blessing-sent', {
+        count: blessingCount,
+        phrase: prompt,
+        isGift: true,
+        giftCategory: category,
+      });
+    }
+    return;
+  }
 
   // Feature 3: Every 7th blessing, recall total blessings from the log
   if (blessingCount % 7 === 0) {
