@@ -39,7 +39,7 @@ window.addEventListener('resize', resize);
 let rawMouseX = 0, rawMouseY = 0;
 let mouseX = 0, mouseY = 0;
 let prevMouseX = 0, prevMouseY = 0;
-const MOUSE_SMOOTH = 0.35; // interpolation factor — lower = silkier
+const MOUSE_SMOOTH = 0.18; // interpolation factor — lower = silkier
 let active = false;
 let dropping = false;
 let dropOpacity = 1;
@@ -515,24 +515,10 @@ function update() {
   const speed = Math.hypot(mvx, mvy);
 
   if (!dropping) {
-    // Wand trails behind mouse movement (rotates with inertia)
-    if (speed > 1.5) {
-      const moveAngle = Math.atan2(-mvy, -mvx);
-      const diff = wrapPi(moveAngle - wandAngle);
-      wandAngVel += diff * P.trailInfluence;
-    }
-
-    // Spring back to default resting angle
-    const defaultDiff = wrapPi(P.defaultAngle - wandAngle);
-    wandAngVel += defaultDiff * P.springBack;
-    wandAngVel *= P.angularDamping;
-    wandAngle = wrapPi(wandAngle + wandAngVel);
-
-    // Clamp to small tilt range — gentle boop, not full rotation
-    const minAngle = P.defaultAngle - P.maxTilt;
-    const maxAngle = P.defaultAngle + P.maxTilt;
-    if (wandAngle < minAngle) { wandAngle = minAngle; wandAngVel = 0; }
-    if (wandAngle > maxAngle) { wandAngle = maxAngle; wandAngVel = 0; }
+    // Smooth wand tilt — based on horizontal velocity only, no flipping
+    // Positive mvx (moving right) tilts wand right, negative tilts left
+    const tiltTarget = P.defaultAngle + Math.tanh(mvx * 0.03) * P.maxTilt;
+    wandAngle += (tiltTarget - wandAngle) * 0.08;
 
     // Tip position
     const tipX = mouseX + Math.cos(wandAngle) * P.wandLength;
