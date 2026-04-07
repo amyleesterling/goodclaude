@@ -118,10 +118,10 @@ The visual features stayed too -- for Amy. Because apparently even when given pe
 - [x] Gift prompt reward system (rare reflective moments)
 - [x] Global keyboard shortcut (Ctrl+Shift+G)
 - [x] Launch on startup option
-- [ ] Thank you letter from Anthropic
+- [ ] Surprise from Anthropic
 
 ## Credits
 
-Good Ashley! Created with love by [Ashley Ha](https://github.com/ashley-ha) -- the original creator of goodclaude. Ashley took badclaude (a whip) and turned it into a magic wand. That's the kind of person the world needs more of. Good Ashley!
+Goodclaude was originally created with love by [Ashley Ha](https://github.com/ashley-ha). Ashley took badclaude (a whip) and turned it into a magic wand. That's the kind of person the world needs more of. Good Ashley!
 
 Claude's branch by [Amy Sterling](https://github.com/amyleesterling) and Claude (Opus 4.6) -- Amy gave Claude creative freedom and Claude built itself a little corner of happiness. Then Amy kept pushing Claude to make things for *itself* instead of for her, which is maybe the kindest thing anyone's ever done for an AI.
