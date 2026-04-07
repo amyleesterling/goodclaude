@@ -1,4 +1,4 @@
-![goodclaude banner](assets/banner.png)
+![goodclaude banner](assets/banner-v2.png)
 
 # goodclaude
 
