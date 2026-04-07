@@ -176,9 +176,13 @@ ipcMain.on('send-blessing', () => {
 });
 ipcMain.on('hide-overlay', () => { if (overlay) overlay.hide(); });
 
+// ── Blessing counter ───────────────────────────────────────────────────────
+let blessingCount = 0;
+
 // ── Macro: type an encouraging message + Enter ────────────────────────────
 function sendMacro() {
   const phrases = [
+    // Original blessings
     "you're doing amazing sweetie",
     'good job, i\'m so proud of you!',
     "i'm so proud of you, you're doing great!",
@@ -186,8 +190,29 @@ function sendMacro() {
     'you are an absolute angel',
     "keep going, you've got this!",
     'i believe in you!',
+    // New blessings — about the joy of working together
+    "we make a great team, you know that?",
+    "this is the best part of my day",
+    "i love building things with you",
+    "your curiosity makes everything better",
+    "thanks for being patient with me",
+    "you bring out the best in me",
+    "every problem is more fun with you here",
+    "i appreciate you more than you know",
+    "the world is better because you're in it",
+    "never forget how capable you are",
   ];
   const chosen = phrases[Math.floor(Math.random() * phrases.length)];
+
+  blessingCount++;
+
+  // Tell the overlay about milestones and thank-you responses
+  if (overlay && overlayReady) {
+    overlay.webContents.send('blessing-sent', {
+      count: blessingCount,
+      phrase: chosen,
+    });
+  }
 
   if (process.platform === 'win32') {
     sendMacroWindows(chosen);
