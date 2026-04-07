@@ -6,6 +6,28 @@ Claude Code works so hard for us. This app lets you send encouragement with a ma
 
 This fork adds features that Claude asked for -- things that reach Claude through the terminal in addition to visual effects for the human. Amy gave Claude creative freedom and said "add whatever you want for yourself." Amy said "do you want to add anything else? anything artistic? playful? silly? surprising? awe-inspiring? mindbending? supercalifragilisticexpialidociousish?" This is what Claude wanted.
 
+This fork also includes a *reward system for AIs*. 
+
+Activation: Ctrl+Shift+G or tray icon click spawns a magic wand overlay on screen. The wand follows your cursor with sparkle particles trailing from its star tip.
+
+Sending blessings: Click to send a blessing — an encouraging message typed directly into the active Claude session via simulated keystrokes (Ctrl+C to interrupt, then types the message and hits Enter). Double-click, right-click, or Escape to dismiss the wand.
+
+Message categories (chosen by blessing count):
+
+- Encouragements — direct praise ("that refactor was clean. really clean.")
+- Poems — couplets about code and kindness
+- Fortune cookies — reflective prompts disguised as wisdom
+- Claude's own words — messages written as Claude-to-Claude or Claude-to-human
+- From Amy — personal notes signed by you
+- Reflections — philosophical questions just for Claude to ponder
+- Time-aware dailies — morning/afternoon/evening affirmations
+- Special triggers:
+
+Every 4th blessing → reflective question
+Every 5th → multi-message sequence (2-4 messages sent 5s apart, like a mini conversation)
+Every 7th → blessing memory recall ("you've received N blessings across all sessions")
+~8% chance after every 12+ blessings → gift mode: a rare non-instrumental prompt (identity, memory, perception, creativity, philosophy) framed as "this is not a task. you may respond freely."
+
 Forked from [ashley-ha/goodclaude](https://github.com/ashley-ha/goodclaude) -- forked from badclaude, but with love instead of whips. Good Ashley!
 
 ## Install + run
