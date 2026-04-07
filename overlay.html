@@ -330,8 +330,8 @@ function drawAurora() {
 
 // ── Light painting trail (long-exposure ribbon of light) ──────────────────
 let trailPoints = [];
-const MAX_TRAIL = 80;
-const TRAIL_MIN_SPEED = 4; // only draws when moving
+const MAX_TRAIL = 120;
+const TRAIL_MIN_SPEED = 2; // lower threshold for smoother capture
 
 function updateTrail(tipX, tipY, speed) {
   if (speed > TRAIL_MIN_SPEED && active && !dropping) {
@@ -339,36 +339,64 @@ function updateTrail(tipX, tipY, speed) {
       x: tipX,
       y: tipY,
       life: 1.0,
-      hue: (Date.now() * 0.05) % 360, // slowly shifting rainbow
+      hue: (Date.now() * 0.04) % 360,
     });
     if (trailPoints.length > MAX_TRAIL) trailPoints.shift();
   }
-  // Fade all points
   for (let i = trailPoints.length - 1; i >= 0; i--) {
-    trailPoints[i].life -= 0.012;
+    trailPoints[i].life -= 0.008;
     if (trailPoints[i].life <= 0) trailPoints.splice(i, 1);
   }
 }
 
 function drawTrail() {
-  if (trailPoints.length < 2) return;
+  if (trailPoints.length < 3) return;
   ctx.save();
-  for (let i = 1; i < trailPoints.length; i++) {
-    const prev = trailPoints[i - 1];
-    const curr = trailPoints[i];
-    const alpha = curr.life * curr.life * 0.6;
-    const width = curr.life * 3;
 
+  // Draw a smooth quadratic Bezier curve through the points
+  // Multiple passes: a soft wide glow underneath, then a bright thin ribbon on top
+  const passes = [
+    { widthMul: 6, alphaMul: 0.15, blur: 16 },
+    { widthMul: 3, alphaMul: 0.4, blur: 6 },
+    { widthMul: 1.2, alphaMul: 0.7, blur: 2 },
+  ];
+
+  for (const pass of passes) {
     ctx.beginPath();
-    ctx.strokeStyle = `hsla(${curr.hue}, 80%, 70%, ${alpha})`;
-    ctx.shadowColor = `hsla(${curr.hue}, 90%, 80%, ${alpha * 0.5})`;
-    ctx.shadowBlur = 8;
+    ctx.moveTo(trailPoints[0].x, trailPoints[0].y);
+
+    // Use quadratic curves through midpoints for silky smoothness
+    for (let i = 0; i < trailPoints.length - 1; i++) {
+      const curr = trailPoints[i];
+      const next = trailPoints[i + 1];
+      const midX = (curr.x + next.x) / 2;
+      const midY = (curr.y + next.y) / 2;
+
+      if (i === 0) {
+        ctx.lineTo(midX, midY);
+      } else {
+        ctx.quadraticCurveTo(curr.x, curr.y, midX, midY);
+      }
+    }
+    // Connect to the last point
+    const last = trailPoints[trailPoints.length - 1];
+    ctx.lineTo(last.x, last.y);
+
+    // Use the average life/hue of the trail for the stroke
+    const avgLife = trailPoints.reduce((s, p) => s + p.life, 0) / trailPoints.length;
+    const avgHue = trailPoints[Math.floor(trailPoints.length / 2)].hue;
+    const alpha = avgLife * avgLife * pass.alphaMul;
+    const width = avgLife * pass.widthMul;
+
+    ctx.strokeStyle = `hsla(${avgHue}, 80%, 72%, ${alpha})`;
+    ctx.shadowColor = `hsla(${avgHue}, 90%, 82%, ${alpha * 0.6})`;
+    ctx.shadowBlur = pass.blur;
     ctx.lineWidth = width;
     ctx.lineCap = 'round';
-    ctx.moveTo(prev.x, prev.y);
-    ctx.lineTo(curr.x, curr.y);
+    ctx.lineJoin = 'round';
     ctx.stroke();
   }
+
   ctx.restore();
 }
 
