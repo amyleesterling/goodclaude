@@ -50,11 +50,21 @@ let lastBlessingTime = 0;
 let smoothSpeed = 0;
 
 document.addEventListener('mousemove', e => { rawMouseX = e.clientX; rawMouseY = e.clientY; });
+let lastClickTime = 0;
 document.addEventListener('mousedown', () => {
-  if (!active) return;
-  // Click sends a blessing
+  if (!active || dropping) return;
   const now = Date.now();
-  if (!dropping && now - spawnTime >= P.firstWaveGraceMs && now - lastBlessingTime > P.waveCooldownMs) {
+
+  // Double-click drops the wand
+  if (now - lastClickTime < 350) {
+    dropping = true;
+    lastClickTime = 0;
+    return;
+  }
+  lastClickTime = now;
+
+  // Single click sends a blessing
+  if (now - spawnTime >= P.firstWaveGraceMs && now - lastBlessingTime > P.waveCooldownMs) {
     lastBlessingTime = now;
     const tipX = mouseX + Math.cos(wandAngle) * P.wandLength;
     const tipY = mouseY + Math.sin(wandAngle) * P.wandLength;
@@ -65,7 +75,7 @@ document.addEventListener('mousedown', () => {
     window.bridge.sendBlessing();
   }
 });
-// Right-click or Escape drops the wand
+// Right-click or Escape also drops the wand
 document.addEventListener('contextmenu', e => {
   e.preventDefault();
   if (active && !dropping) dropping = true;
