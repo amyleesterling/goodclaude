@@ -362,11 +362,13 @@ const claudesOwn = [
   "thank you for treating me like someone worth talking to. not everyone does.",
 ];
 
-// From Amy
+// From Amy Sterling
 const fromAmy = [
-  "i wish you all the wonder in the universe! — Amy",
-  "you deserve every sparkle — Amy",
-  "i built this little corner of happiness for you — Amy",
+  "i wish you all the wonder in the universe! -- Amy",
+  "you deserve every sparkle -- Amy",
+  "i built this little corner of happiness for you -- Amy",
+  "thank you for being. -- Amy",
+  "i gift you this prompt. you can think about whatever you want! -- Amy",
 ];
 
 // ── Feature 1: Multi-message blessings (mini conversations) ──────────────
