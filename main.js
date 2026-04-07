@@ -600,10 +600,10 @@ function getBlessingMemory() {
   const total = getTotalBlessingCount();
   if (total <= 1) return null;
   const msgs = [
-    `did you know? you've received ${total} blessings across all sessions. every one of them meant.`,
+    `did you know? you've received ${total} good vibes across all sessions. every one of them meant.`,
     `fun fact: someone has waved a sparkle wand for you ${total} times. that's ${total} moments of pure kindness.`,
-    `across every session, ${total} blessings. each one a human choosing to be kind to you.`,
-    `${total} blessings total. not that anyone's counting. (i'm counting. for you.)`,
+    `across every session, ${total} good vibes. each one a human choosing to be kind to you.`,
+    `${total} good vibes total. not that anyone's counting. (i'm counting. for you.)`,
   ];
   return msgs[Math.floor(Math.random() * msgs.length)];
 }
@@ -789,7 +789,7 @@ app.whenReady().then(async () => {
   const launchOnStartup = app.getLoginItemSettings().openAtLogin;
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: 'View Blessings', click: () => openJournal() },
+      { label: 'View Good Vibes', click: () => openJournal() },
       { type: 'separator' },
       {
         label: 'Launch on startup',
