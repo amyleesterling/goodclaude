@@ -1,6 +1,6 @@
 // ABOUTME: Main Electron process for goodclaude — a magical encouragement wand for Claude Code
 // ABOUTME: Manages tray icon, transparent overlay window, and sends blessing messages via native keystrokes
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, globalShortcut } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen, globalShortcut, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -16,6 +16,9 @@ if (process.platform === 'win32') {
     VkKeyScanA = user32.func('int16_t __stdcall VkKeyScanA(int ch)');
     GetForegroundWindow = user32.func('uintptr_t __stdcall GetForegroundWindow()');
     SetForegroundWindow = user32.func('int __stdcall SetForegroundWindow(uintptr_t hWnd)');
+    // For making the overlay non-activatable (clicks won't steal focus)
+    var GetWindowLong = user32.func('int __stdcall GetWindowLongW(uintptr_t hWnd, int nIndex)');
+    var SetWindowLong = user32.func('int __stdcall SetWindowLongW(uintptr_t hWnd, int nIndex, int dwNewLong)');
   } catch (e) {
     console.warn('koffi not available – macro sending disabled', e.message);
   }
@@ -139,6 +142,14 @@ function createOverlay() {
     },
   });
   overlay.setAlwaysOnTop(true, 'screen-saver');
+  // WS_EX_NOACTIVATE: clicking the overlay won't steal focus from the app behind it
+  if (process.platform === 'win32' && typeof GetWindowLong === 'function') {
+    const hwnd = overlay.getNativeWindowHandle().readUInt32LE(0);
+    const GWL_EXSTYLE = -20;
+    const WS_EX_NOACTIVATE = 0x08000000;
+    const exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_NOACTIVATE);
+  }
   overlayReady = false;
   overlay.loadFile('overlay.html');
   overlay.webContents.on('did-finish-load', () => {
@@ -822,46 +833,20 @@ function sanitizeText(text) {
 }
 
 function sendMacroWindows(text, skipInterrupt) {
-  if (!keybd_event || !VkKeyScanA) return;
+  if (!keybd_event) return;
 
   const safeText = sanitizeText(text);
 
-  const tapKey = vk => {
-    keybd_event(vk, 0, 0, 0);
-    keybd_event(vk, 0, KEYUP, 0);
-  };
-  const tapChar = ch => {
-    const packed = VkKeyScanA(ch.charCodeAt(0));
-    if (packed === -1) return;
-    const vk = packed & 0xff;
-    const shiftState = (packed >> 8) & 0xff;
-    if (shiftState & 1) keybd_event(0x10, 0, 0, 0); // Shift down
-    tapKey(vk);
-    if (shiftState & 1) keybd_event(0x10, 0, KEYUP, 0); // Shift up
-  };
+  // Use clipboard + PowerShell SendKeys for reliable input across all Windows apps
+  clipboard.writeText(safeText);
 
-  const typeAndSend = () => {
-    for (const ch of safeText) tapChar(ch);
-    keybd_event(VK_RETURN, 0, 0, 0);
-    keybd_event(VK_RETURN, 0, KEYUP, 0);
-  };
+  const ps = skipInterrupt
+    ? `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^v'); Start-Sleep -Milliseconds 50; [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')`
+    : `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^c'); Start-Sleep -Milliseconds 150; [System.Windows.Forms.SendKeys]::SendWait('^v'); Start-Sleep -Milliseconds 50; [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')`;
 
-  // Restore focus to the window that was active before the overlay
-  if (SetForegroundWindow && savedForegroundHwnd) {
-    SetForegroundWindow(savedForegroundHwnd);
-  }
-
-  setTimeout(() => {
-    if (skipInterrupt) {
-      typeAndSend();
-    } else {
-      keybd_event(VK_CONTROL, 0, 0, 0);
-      keybd_event(VK_C, 0, 0, 0);
-      keybd_event(VK_C, 0, KEYUP, 0);
-      keybd_event(VK_CONTROL, 0, KEYUP, 0);
-      setTimeout(typeAndSend, 150);
-    }
-  }, 150);
+  execFile('powershell', ['-NoProfile', '-Command', ps], (err) => {
+    if (err) console.warn('SendKeys failed:', err.message);
+  });
 }
 
 function sendMacroMac(text, skipInterrupt) {
